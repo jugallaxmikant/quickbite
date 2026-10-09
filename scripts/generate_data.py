@@ -1,6 +1,6 @@
 import random
 from datetime import datetime, timedelta
-
+from pathlib import Path
 from faker import Faker
 import psycopg
 
@@ -237,7 +237,10 @@ def fix_id_counters(cur):
             f"SELECT setval(pg_get_serial_sequence('{table}', '{column}'), "
             f"(SELECT MAX({column}) FROM {table}))"
         )
-
+def add_mess(cur):
+    """Run the SQL file that adds real-world mess."""
+    sql = Path("sql/02_add_mess.sql").read_text()
+    cur.execute(sql)
 
 def main():
     with psycopg.connect(DB_URL) as conn:
@@ -248,6 +251,7 @@ def main():
             insert_riders(cur)
             counts = generate_activity(cur)
             fix_id_counters(cur)
+            add_mess(cur)
         conn.commit()
 
     print("Done.")
