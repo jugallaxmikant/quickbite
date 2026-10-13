@@ -1,3 +1,4 @@
+import time
 import math
 import random
 from datetime import datetime, timedelta
@@ -77,6 +78,31 @@ def build_data():
 
 
 RESTAURANTS, DISHES = build_data()
+# ---------- Make the API act like a real one ----------
+RATE_LIMIT = 10        # max requests...
+RATE_WINDOW = 10       # ...per this many seconds
+FAILURE_RATE = 0.1     # 10% of requests fail with 500
+
+request_times = []
+chaos = random.Random()
+
+
+def misbehave():
+    """Sometimes refuse (429) or fail (500), like real APIs do."""
+    now = time.time()
+
+    while request_times and now - request_times[0] > RATE_WINDOW:
+        request_times.pop(0)
+
+    if len(request_times) >= RATE_LIMIT:
+        wait = int(RATE_WINDOW - (now - request_times[0])) + 1
+        raise HTTPException(status_code=429, detail="Too many requests",
+                            headers={"Retry-After": str(wait)})
+
+    request_times.append(now)
+
+    if chaos.random() < FAILURE_RATE:
+        raise HTTPException(status_code=500, detail="Random server error")
 
 
 def paginate(items, page, page_size):
@@ -100,6 +126,7 @@ def health():
 
 @app.get("/restaurants")
 def list_restaurants(page: int = Query(1, ge=1), page_size: int = Query(50, ge=1, le=100)):
+    misbehave()
     return paginate(RESTAURANTS, page, page_size)
 
 
@@ -113,4 +140,5 @@ def get_restaurant(restaurant_id: int):
 
 @app.get("/dishes")
 def list_dishes(page: int = Query(1, ge=1), page_size: int = Query(100, ge=1, le=100)):
+    misbehave()
     return paginate(DISHES, page, page_size)
