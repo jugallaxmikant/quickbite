@@ -76,3 +76,4 @@ def pull(endpoint, page_size):
 
 if __name__ == "__main__":
     pull("restaurants", 50)
+    pull("dishes", 100)
